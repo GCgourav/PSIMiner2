@@ -416,7 +416,7 @@ tempMin: TMIN EEQ rational 		{
 					};
 	
 predicateSpec:
-        startExpr variableMapList { idList = $2;} PBEGIN predicateList endPList expressList {      
+        startExpr variableMapList { idList = $2;} PBEGIN predicateList endPList expressList TARGET PBEGIN targetList endTList {      
                                                                 #ifdef YACC_DEBUG_ON 
                                                                         printf("PARSER: Matched File\n");
                                                                 #endif
@@ -426,6 +426,7 @@ predicateSpec:
                                                                 predicateMap->varList = $2;
                                                                 predicateMap->porvList = $5;
                                                                 predicateMap->exprList = $7;
+								predicateMap->targetList = $10;
                                                                 //printPredicateMap(predicateMap);
                                                                 struct identifier* id = inputConfig->traceFileNames;
                                                                 while(id){
@@ -438,7 +439,7 @@ predicateSpec:
                                                                 //booleanize();
                                                                 //printf("\nInterval Sets are In: \"%s.dat\"\n",traceFileName);
                                                             }
-        |variableMapList { idList = $1;} PBEGIN predicateList endPList expressList {      
+        |variableMapList { idList = $1;} PBEGIN predicateList endPList expressList TARGET PBEGIN targetList endTList {      
                                                                 #ifdef YACC_DEBUG_ON 
                                                                         printf("PARSER: Matched File\n");
                                                                 #endif
@@ -448,6 +449,7 @@ predicateSpec:
                                                                 predicateMap->varList = $1;
                                                                 predicateMap->porvList = $4;
                                                                 predicateMap->exprList = $6;
+								predicateMap->targetList = $900;
                                                                 //printPredicateMap(predicateMap);                                                                
                                                                 struct identifier* id = inputConfig->traceFileNames;
                                                                 while(id){
@@ -715,6 +717,14 @@ arithStatement:
                                                         }
         ;
 
+targetList: targetList expressionLine        		{
+								$$ = addToExpressionList($1,$2);
+							}
+	| expressionLine				{
+								$$ = createExpressionList($1);	
+							}
+	;
+
 expressList: expressList expressionLine        		{
 								$$ = addToExpressionList($1,$2);
 							}
@@ -754,6 +764,22 @@ disjunct: disjunct BOR rational				{
 	;
 	
 endPList: PEND						{	if(predToPy_multiLine){
+									if(!predicateMap)
+										predicateMap = createFile();
+
+									strcpy(predicateLine,oldLine);
+									if(strlen(trim(predicateLine))>0){
+										printf("PORV ----- [%s]\n",predicateLine);
+										struct identifier* tempID = createIdentifier(predicateLine);
+										tempID->col = porvID-1;
+										tempID->timeCol = 0;
+										predicateMap->predicates = addIdentifierToList(predicateMap->predicates,tempID);
+										tempID = NULL;                   
+									}
+								}
+							}
+							;
+endTList: PEND						{	if(predToPy_multiLine){
 									if(!predicateMap)
 										predicateMap = createFile();
 
